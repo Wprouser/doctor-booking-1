@@ -59,6 +59,31 @@ npm start       # Express serves dist/ and the /api/* routes on one port
 
 One Node process serves both the static frontend and the API, so deployment is just "run `npm start`" behind a single port — no separate frontend host needed. Set `DATABASE_URL`, `BETTER_AUTH_SECRET`, and `BETTER_AUTH_URL` (the deployed public URL) in the deployment environment.
 
+## Deploying to Render
+
+This repo includes a `render.yaml` blueprint, but a manual Web Service works just as well:
+
+1. **Push to GitHub** (already done if you're reading this from the repo).
+2. In the Render dashboard: **New → Web Service**, connect this GitHub repo.
+3. Configure:
+   - **Runtime:** Node
+   - **Branch:** `main`
+   - **Build Command:** `npm install --include=dev && npm run build`
+     (`--include=dev` matters — `vite` and `typescript` are devDependencies needed only at build time)
+   - **Start Command:** `npm start`
+4. Add environment variables:
+   - `DATABASE_URL` — your Neon connection string
+   - `BETTER_AUTH_SECRET` — generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+   - `BETTER_AUTH_URL` — optional; if omitted, the app falls back to Render's auto-injected `RENDER_EXTERNAL_URL`, which is correct for a standard Render web service
+5. Create the service. Render sets `PORT` automatically and the app already reads `process.env.PORT`, so no change needed there.
+6. Before (or after) first deploy, make sure the database schema exists — run once from your machine (or Render's Shell tab) against the same `DATABASE_URL`:
+   ```bash
+   npx @better-auth/cli migrate --config server/auth.ts
+   npm run db:migrate
+   npm run db:seed
+   ```
+7. Visit the deployed URL, sign up, and confirm booking/cancel works end to end.
+
 ## Project structure
 
 ```
